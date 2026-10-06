@@ -7,7 +7,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "dev": "node --experimental-strip-types src/server.ts",
-    "seed": "node --experimental-strip-types seeds/palestras.ts"
+    "seed": "node --experimental-strip-types seeds/palestras.ts",
+    "check": "tsc --noEmit && eslint . && depcruise src && vitest run"
   },
   "license": "MIT",
   "dependencies": {
@@ -17,7 +18,10 @@
   "devDependencies": {
     "@types/better-sqlite3": "^9.6.0",
     "@types/node": "^26.6.4",
-    "typescript": "^7.0.2",
+    "dependency-cruiser": "^18.5.0",
+    "eslint": "^10.12.0",
+    "typescript": "~6.0",
+    "typescript-eslint": "^8.71.1",
     "vitest": "^3.2.7"
   }
 }
