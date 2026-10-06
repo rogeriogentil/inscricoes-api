@@ -1,35 +1,13 @@
 import type { Database } from 'better-sqlite3'
+import type { Inscricao } from '../../domain/inscricoes.js'
+import {
+  PalestraNaoEncontrada,
+  SemVagas,
+  InscricaoDuplicada,
+  InscricaoNaoEncontrada,
+} from '../../domain/inscricoes.js'
 
-export type Inscricao = {
-  id: number
-  palestra_id: number
-  email: string
-  criada_em: string
-}
-
-export class PalestraNaoEncontrada extends Error {
-  constructor() {
-    super('Palestra não encontrada')
-  }
-}
-
-export class SemVagas extends Error {
-  constructor() {
-    super('Sem vagas disponíveis')
-  }
-}
-
-export class InscricaoDuplicada extends Error {
-  constructor() {
-    super('Participante já inscrito nesta palestra')
-  }
-}
-
-export class InscricaoNaoEncontrada extends Error {
-  constructor() {
-    super('Inscrição não encontrada')
-  }
-}
+export type ResultadoCancelamento = { promovido: string | null }
 
 export function inscrever(banco: Database, palestraId: number, email: string): Inscricao {
   const inscreverTx = banco.transaction(() => {
@@ -67,7 +45,7 @@ export function inscrever(banco: Database, palestraId: number, email: string): I
   return inscreverTx()
 }
 
-export function cancelar(banco: Database, palestraId: number, email: string): void {
+export function cancelar(banco: Database, palestraId: number, email: string): ResultadoCancelamento {
   const cancelarTx = banco.transaction(() => {
     const palestra = banco
       .prepare('SELECT id FROM palestras WHERE id = ?')
@@ -81,10 +59,23 @@ export function cancelar(banco: Database, palestraId: number, email: string): vo
 
     if (resultado.changes === 0) throw new InscricaoNaoEncontrada()
 
+    const proximo = banco
+      .prepare('SELECT id, email FROM espera WHERE palestra_id = ? ORDER BY id ASC LIMIT 1')
+      .get(palestraId) as { id: number; email: string } | undefined
+
+    if (proximo) {
+      banco.prepare('DELETE FROM espera WHERE id = ?').run(proximo.id)
+      banco
+        .prepare('INSERT INTO inscricoes (palestra_id, email, criada_em) VALUES (?, ?, ?)')
+        .run(palestraId, proximo.email, new Date().toISOString())
+      return { promovido: proximo.email }
+    }
+
     banco
       .prepare('UPDATE palestras SET vagas_disponiveis = vagas_disponiveis + 1 WHERE id = ?')
       .run(palestraId)
+    return { promovido: null }
   })
 
-  cancelarTx()
+  return cancelarTx()
 }

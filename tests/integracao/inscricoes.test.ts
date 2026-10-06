@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import Database from 'better-sqlite3'
-import { executarMigracoes } from '../../src/banco/migracoes.js'
+import { executarMigracoes } from '../../src/infra/banco/migracoes.js'
 import { criarApp } from '../../src/server.js'
 import type { FastifyInstance } from 'fastify'
 
@@ -58,7 +58,7 @@ describe('POST /palestras/:id/inscricoes', () => {
     expect(palestra.vagas_disponiveis).toBe(1)
   })
 
-  it('retorna 422 quando palestra está sem vagas', async () => {
+  it('retorna 202 e entrada na fila quando palestra está lotada', async () => {
     banco
       .prepare('UPDATE palestras SET vagas_disponiveis = 0 WHERE id = ?')
       .run(palestraId)
@@ -69,8 +69,11 @@ describe('POST /palestras/:id/inscricoes', () => {
       payload: { email: 'alice@exemplo.com' },
     })
 
-    expect(response.statusCode).toBe(422)
-    expect(response.json<{ erro: string }>().erro).toBe('Sem vagas disponíveis')
+    expect(response.statusCode).toBe(202)
+    const body = response.json<{ id: number; palestra_id: number; email: string; posicao: number; criada_em: string }>()
+    expect(body.palestra_id).toBe(palestraId)
+    expect(body.email).toBe('alice@exemplo.com')
+    expect(body.posicao).toBe(1)
   })
 
   it('retorna 409 quando participante já está inscrito', async () => {

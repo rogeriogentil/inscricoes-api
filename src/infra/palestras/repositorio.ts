@@ -1,16 +1,5 @@
 import type { Database } from 'better-sqlite3'
-
-export type Palestra = {
-  id: number
-  titulo: string
-  descricao: string | null
-  data: string
-  horario: string
-  local: string
-  palestrante: string
-  vagas_total: number
-  vagas_disponiveis: number
-}
+import type { Palestra } from '../../domain/palestras.js'
 
 export function buscarTodas(banco: Database): Palestra[] {
   return banco

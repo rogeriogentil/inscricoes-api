@@ -21,5 +21,13 @@ export function executarMigracoes(banco: Database): void {
       criada_em    TEXT    NOT NULL,
       UNIQUE(palestra_id, email)
     );
+
+    CREATE TABLE IF NOT EXISTS espera (
+      id           INTEGER PRIMARY KEY AUTOINCREMENT,
+      palestra_id  INTEGER NOT NULL REFERENCES palestras(id),
+      email        TEXT    NOT NULL,
+      criada_em    TEXT    NOT NULL,
+      UNIQUE(palestra_id, email)
+    );
   `)
 }

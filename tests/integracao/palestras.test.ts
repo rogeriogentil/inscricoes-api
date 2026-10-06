@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import Database from 'better-sqlite3'
-import { executarMigracoes } from '../../src/banco/migracoes.js'
+import { executarMigracoes } from '../../src/infra/banco/migracoes.js'
 import { criarApp } from '../../src/server.js'
 import type { FastifyInstance } from 'fastify'
 

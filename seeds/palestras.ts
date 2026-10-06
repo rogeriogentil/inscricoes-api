@@ -1,5 +1,5 @@
-import { abrirBanco } from '../src/banco/conexao.js'
-import { executarMigracoes } from '../src/banco/migracoes.js'
+import { abrirBanco } from '../src/infra/banco/conexao.js'
+import { executarMigracoes } from '../src/infra/banco/migracoes.js'
 
 const banco = abrirBanco('dev.db')
 executarMigracoes(banco)

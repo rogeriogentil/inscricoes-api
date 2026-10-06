@@ -1,13 +1,13 @@
 import type { FastifyInstance } from 'fastify'
-import type { Database } from 'better-sqlite3'
+import type { Inscricao } from '../../domain/inscricoes.js'
+import type { Espera } from '../../domain/espera.js'
 import {
-  inscrever,
-  cancelar,
   PalestraNaoEncontrada,
   SemVagas,
   InscricaoDuplicada,
   InscricaoNaoEncontrada,
-} from './repositorio.js'
+} from '../../domain/inscricoes.js'
+import { JaInscrito, JaNaFila } from '../../domain/espera.js'
 
 const schemaEmail = {
   type: 'object',
@@ -15,13 +15,18 @@ const schemaEmail = {
   properties: {
     email: {
       type: 'string',
-      // Fastify AJV 8 ignores `format` by default; `pattern` is validated natively
       pattern: '^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$',
     },
   },
 } as const
 
-export function registrarRotasInscricoes(app: FastifyInstance, banco: Database): void {
+type InscricoesRepo = {
+  inscrever: (palestraId: number, email: string) => Inscricao
+  cancelar: (palestraId: number, email: string) => { promovido: string | null }
+  entrarNaFila: (palestraId: number, email: string) => Espera
+}
+
+export function registrarRotasInscricoes(app: FastifyInstance, repo: InscricoesRepo): void {
   app.post<{ Params: { id: string }; Body: { email: string } }>(
     '/palestras/:id/inscricoes',
     { schema: { body: schemaEmail } },
@@ -32,14 +37,25 @@ export function registrarRotasInscricoes(app: FastifyInstance, banco: Database):
       }
 
       try {
-        const inscricao = inscrever(banco, palestraId, req.body.email)
+        const inscricao = repo.inscrever(palestraId, req.body.email)
         return reply.status(201).send(inscricao)
       } catch (err) {
         if (err instanceof PalestraNaoEncontrada) {
           return reply.status(404).send({ erro: err.message })
         }
         if (err instanceof SemVagas) {
-          return reply.status(422).send({ erro: err.message })
+          try {
+            const entrada = repo.entrarNaFila(palestraId, req.body.email)
+            return reply.status(202).send(entrada)
+          } catch (errFila) {
+            if (errFila instanceof JaInscrito || errFila instanceof JaNaFila) {
+              return reply.status(409).send({ erro: (errFila as Error).message })
+            }
+            if (errFila instanceof PalestraNaoEncontrada) {
+              return reply.status(404).send({ erro: (errFila as Error).message })
+            }
+            throw errFila
+          }
         }
         if (err instanceof InscricaoDuplicada) {
           return reply.status(409).send({ erro: err.message })
@@ -59,7 +75,7 @@ export function registrarRotasInscricoes(app: FastifyInstance, banco: Database):
       }
 
       try {
-        cancelar(banco, palestraId, req.body.email)
+        repo.cancelar(palestraId, req.body.email)
         return reply.status(204).send()
       } catch (err) {
         if (err instanceof PalestraNaoEncontrada) {
