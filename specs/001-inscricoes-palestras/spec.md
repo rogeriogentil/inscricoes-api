@@ -8,6 +8,14 @@
 
 **Input**: User description: "Participantes da Semana da Computação se inscrevem em palestras. Cada palestra tem um número máximo de vagas. O participante pode ver as palestras, se inscrever e cancelar a inscrição."
 
+## Clarifications
+
+### Session 2026-10-06
+
+- Q: Como o participante informa sua identidade ao realizar uma inscrição ou cancelamento? → A: E-mail informado no corpo/parâmetro de cada requisição (sem senha nem token)
+- Q: Quando dois participantes tentam se inscrever simultaneamente na última vaga disponível, qual deles deve ter a inscrição confirmada? → A: Primeira requisição concluída é confirmada (first-come-first-served); a segunda recebe erro "sem vagas"
+- Q: Além de título e descrição, a Palestra precisa registrar data, horário e nome do palestrante? → A: Sim — data, horário, palestrante e local
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 — Consultar Palestras Disponíveis (Priority: P1)
@@ -25,8 +33,8 @@ e verificando que os dados retornados são corretos e incluem a contagem de vaga
 **Acceptance Scenarios**:
 
 1. **Given** o sistema possui palestras cadastradas, **When** o participante solicita
-   a lista de palestras, **Then** recebe todas as palestras com título, descrição e
-   número de vagas disponíveis.
+   a lista de palestras, **Then** recebe todas as palestras com título, descrição,
+   data, horário, local, palestrante e número de vagas disponíveis.
 2. **Given** uma palestra está com todas as vagas preenchidas, **When** o participante
    consulta a lista, **Then** essa palestra aparece com vagas disponíveis igual a zero.
 3. **Given** nenhuma palestra está cadastrada, **When** o participante consulta a lista,
@@ -83,7 +91,8 @@ verificando que a vaga é restituída à palestra.
 ### Edge Cases
 
 - O que acontece quando dois participantes tentam se inscrever simultaneamente na
-  última vaga disponível? A vaga deve ser concedida a apenas um deles.
+  última vaga disponível? A primeira requisição concluída é confirmada (first-come-
+  first-served); a segunda recebe erro "sem vagas disponíveis".
 - O que acontece se o participante tentar se inscrever em uma palestra inexistente?
   O sistema deve informar que a palestra não foi encontrada.
 - O que acontece se o identificador do participante for inválido ou não fornecido?
@@ -93,28 +102,35 @@ verificando que a vaga é restituída à palestra.
 
 ### Functional Requirements
 
-- **FR-001**: O sistema DEVE listar todas as palestras cadastradas com título, descrição
-  e número de vagas disponíveis.
-- **FR-002**: O sistema DEVE permitir que um participante identificado se inscreva em
-  uma palestra que possua vagas disponíveis.
+- **FR-001**: O sistema DEVE listar todas as palestras cadastradas com título, descrição,
+  data, horário, local, nome do palestrante e número de vagas disponíveis.
+- **FR-002**: O sistema DEVE permitir que um participante se inscreva em uma palestra
+  com vagas disponíveis, recebendo o e-mail do participante no corpo da requisição.
 - **FR-003**: O sistema DEVE impedir a inscrição quando a palestra não tiver vagas
   disponíveis, retornando mensagem explicativa.
-- **FR-004**: O sistema DEVE impedir inscrição duplicada do mesmo participante na
-  mesma palestra, retornando mensagem explicativa.
+- **FR-004**: O sistema DEVE impedir inscrição duplicada do mesmo e-mail na mesma
+  palestra, retornando mensagem explicativa.
 - **FR-005**: O sistema DEVE decrementar em uma unidade as vagas disponíveis da
-  palestra a cada inscrição confirmada.
-- **FR-006**: O sistema DEVE permitir que um participante cancele uma inscrição ativa.
+  palestra a cada inscrição confirmada, garantindo que em requisições simultâneas
+  apenas uma seja aceita quando restar exatamente uma vaga.
+- **FR-006**: O sistema DEVE permitir que um participante cancele uma inscrição ativa,
+  recebendo o e-mail do participante no corpo da requisição.
 - **FR-007**: O sistema DEVE incrementar em uma unidade as vagas disponíveis da
   palestra a cada cancelamento confirmado.
 - **FR-008**: O sistema DEVE retornar erro quando o participante tentar cancelar uma
   inscrição inexistente.
+- **FR-009**: O sistema DEVE rejeitar o cancelamento quando o e-mail informado não
+  corresponder ao e-mail da inscrição, impedindo que um participante cancele a
+  inscrição de outro.
 
 ### Key Entities
 
-- **Palestra**: representa uma sessão do evento; possui título, descrição, número
-  máximo de vagas e número de vagas disponíveis.
-- **Participante**: pessoa que interage com o sistema; identificado de forma única
-  (por e-mail).
+- **Palestra**: representa uma sessão do evento; possui título, descrição, data,
+  horário, local, nome do palestrante, número máximo de vagas e número de vagas
+  disponíveis.
+- **Participante**: pessoa que interage com o sistema; identificada por e-mail, que
+  é fornecido diretamente em cada requisição de inscrição ou cancelamento (sem
+  autenticação com senha).
 - **Inscrição**: vínculo entre um participante e uma palestra; registra a data/hora
   da inscrição.
 
