@@ -54,6 +54,41 @@ runner) seguem a mesma regra.
 o aprendizado e aumentam o custo de manutenção; a justificativa força
 reflexão deliberada antes de qualquer adição.
 
+### V. Camadas
+
+O código de produção DEVE ser organizado em três camadas com dependências
+unidirecionais:
+
+- **domain** — tipos de domínio, erros de negócio e lógica pura. Não importa
+  nada de `api` nem de `infra`. É a camada mais estável.
+- **api** — rotas HTTP, validação de entrada e mapeamento de erros para status
+  HTTP. Depende de `domain`; NÃO depende diretamente de `infra`.
+- **infra** — acesso a banco de dados, migrações e serviços externos. Depende
+  de `domain` (usa seus tipos e implementa suas interfaces); NÃO depende de `api`.
+
+Regra de dependência (o que é permitido e o que é proibido):
+
+```
+api   → domain   ✅
+infra → domain   ✅
+domain → (nenhuma)  ✅
+
+api   → infra    ❌
+infra → api      ❌
+domain → api     ❌
+domain → infra   ❌
+```
+
+A injeção de dependência (passar um repositório concreto para uma função de
+rota ou para `criarApp`) é o mecanismo correto para conectar as camadas sem
+criar acoplamento proibido entre elas.
+
+**Rationale**: Manter o domínio livre de detalhes de framework e banco de dados
+garante que as regras de negócio possam ser testadas de forma isolada e
+reutilizadas independentemente da infraestrutura escolhida. Segue o princípio
+de inversão de dependência e facilita a substituição de camadas externas sem
+alterar o núcleo do negócio.
+
 ## Restrições de Desenvolvimento
 
 - O projeto é **intencionalmente pequeno**: escopo limitado ao domínio de
@@ -71,7 +106,7 @@ reflexão deliberada antes de qualquer adição.
   alterado (princípio I).
 - Antes de abrir uma PR/commit com nova dependência, a justificativa (princípio IV)
   DEVE constar na descrição da PR ou no plano de implementação vinculado.
-- O revisor DEVE verificar conformidade com os quatro princípios; não conformidades
+- O revisor DEVE verificar conformidade com os cinco princípios; não conformidades
   bloqueiam o merge.
 - Refatorações puramente internas não precisam de aprovação prévia, desde que
   todos os testes continuem passando.
@@ -88,4 +123,4 @@ individuais. Emendas DEVEM:
 
 Toda PR/revisão de código DEVE verificar conformidade com esta constituição.
 
-**Version**: 1.0.0 | **Ratified**: 2026-10-04 | **Last Amended**: 2026-10-04
+**Version**: 1.1.0 | **Ratified**: 2026-10-04 | **Last Amended**: 2026-10-06
